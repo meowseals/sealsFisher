@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
     QLabel,
     QMainWindow,
@@ -6,6 +6,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+from controller import FishingController
 
 
 class SealsFisher(QMainWindow):
@@ -16,8 +18,14 @@ class SealsFisher(QMainWindow):
         self.setWindowTitle("Seals Fisher")
         self.setFixedSize(320, 240)
 
+        self.controller = FishingController()
+
         self.setupUi()
         self.applyStyles()
+
+        self.statusTimer = QTimer()
+        self.statusTimer.timeout.connect(self.updateStatus)
+        self.statusTimer.start(100)
 
     def setupUi(self):
 
@@ -50,7 +58,7 @@ class SealsFisher(QMainWindow):
 
         # Statistics
 
-        mainLayout.addSpacing(15)
+        mainLayout.addSpacing(12)
 
         statisticsLayout = QVBoxLayout()
         statisticsLayout.setContentsMargins(1, 1, 1, 1)
@@ -76,35 +84,45 @@ class SealsFisher(QMainWindow):
 
         # Start button
 
-        mainLayout.addSpacing(15)
+        mainLayout.addSpacing(12)
 
-        self.startButton = QPushButton("Start Fishing")
+        self.startButton = QPushButton("Start Fishing / F8")
         self.startButton.setObjectName("startButton")
         self.startButton.setFixedHeight(36)
 
         mainLayout.addWidget(self.startButton)
 
-        self.startButton.clicked.connect(self.startFishing)
+        self.startButton.clicked.connect(self.toggleFishing)
 
-        # Stop hint
+    def toggleFishing(self):
 
-        mainLayout.addSpacing(2)
+        if self.controller.isRunning:
+            self.controller.stop()
+        else:
+            self.controller.start()
 
-        self.stopHint = QLabel("F8 Stop")
-        self.stopHint.setObjectName("hint")
-        self.stopHint.setAlignment(Qt.AlignCenter)
+        self.updateStatus()
 
-        mainLayout.addWidget(self.stopHint)
+    def updateStatus(self):
 
-    def startFishing(self):
-
-        self.status.setText("Status: Running")
-        self.status.setObjectName("running")
+        if self.controller.isRunning:
+            self.status.setText("Status: Running")
+            self.status.setObjectName("running")
+            self.startButton.setText("Stop Fishing / F8")
+        else:
+            self.status.setText("Status: Ready")
+            self.status.setObjectName("status")
+            self.startButton.setText("Start Fishing / F8")
 
         self.status.style().unpolish(self.status)
         self.status.style().polish(self.status)
 
-        self.startButton.setText("Fishing...")
+    def closeEvent(self, event):
+
+        self.controller.stop()
+        self.controller.cleanup()
+
+        event.accept()
 
     def applyStyles(self):
 
